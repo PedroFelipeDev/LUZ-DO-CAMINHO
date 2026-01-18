@@ -2,15 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { JournalEntry } from '../types';
 import { getWeeklyEntries } from '../services/journalService';
 import { Tab } from '../types';
-
-interface LocalNote {
-  key: string;
-  chapterKey: string;
-  bookAbbrev: string;
-  chapterIndex: number;
-  text: string;
-  date: number; // created at
-}
+import { getAllNotes, Note } from '../services/api';
 
 interface JournalViewProps {
   onNavigate?: (tab: Tab) => void;
@@ -20,7 +12,7 @@ const JournalView: React.FC<JournalViewProps> = ({ onNavigate }) => {
   const [activeTab, setActiveTab] = useState<'DEVOTIONAL' | 'NOTES'>('DEVOTIONAL');
   const [entries, setEntries] = useState<JournalEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [localNotes, setLocalNotes] = useState<LocalNote[]>([]);
+  const [localNotes, setLocalNotes] = useState<Note[]>([]);
 
   useEffect(() => {
     const loadEntries = async () => {
@@ -34,27 +26,16 @@ const JournalView: React.FC<JournalViewProps> = ({ onNavigate }) => {
       }
     };
 
-    const loadNotes = () => {
-      const notes: LocalNote[] = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key && key.startsWith('note-')) {
-          const text = localStorage.getItem(key) || "";
-          if (text.trim()) {
-            const chapterKey = key.replace('note-', '');
-            const [bookAbbrev, chapterIdxStr] = chapterKey.split('-');
-            notes.push({
-              key,
-              chapterKey,
-              bookAbbrev: bookAbbrev.toUpperCase(),
-              chapterIndex: parseInt(chapterIdxStr, 10),
-              text,
-              date: Date.now() // formatting date is optional/mock as local storage doesn't store metadata in this simple version
-            });
-          }
-        }
+
+    // ...
+
+    const loadNotes = async () => {
+      try {
+        const notes = await getAllNotes();
+        setLocalNotes(notes);
+      } catch (error) {
+        console.error("Failed to load notes", error);
       }
-      setLocalNotes(notes);
     };
 
     if (activeTab === 'DEVOTIONAL') {
@@ -64,8 +45,10 @@ const JournalView: React.FC<JournalViewProps> = ({ onNavigate }) => {
     }
   }, [activeTab]);
 
-  const handleNoteClick = (note: LocalNote) => {
-    localStorage.setItem('pending_nav_chapter', note.chapterKey);
+  const handleNoteClick = (note: Note) => {
+    // using legacy local storage param for nav for now, ideally pass via props or context
+    const navKey = `${note.book_abbrev}-${note.chapter_index}`;
+    localStorage.setItem('pending_nav_chapter', navKey);
     if (onNavigate) {
       onNavigate(Tab.READING);
     }
@@ -148,15 +131,15 @@ const JournalView: React.FC<JournalViewProps> = ({ onNavigate }) => {
                 <p className="text-xs text-gray-400 mt-1">Navegue pelos capítulos e clique em "Anotar" para começar.</p>
               </div>
             ) : (
-              localNotes.map(note => (
+              localNotes.map((note, idx) => (
                 <div
-                  key={note.key}
+                  key={note.id || idx}
                   onClick={() => handleNoteClick(note)}
                   className="bg-white dark:bg-white/5 p-4 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm cursor-pointer hover:bg-gray-50 dark:hover:bg-white/10 transition-colors"
                 >
                   <div className="flex items-center justify-between mb-2">
                     <h4 className="font-bold text-[#1c1a0d] dark:text-white text-lg">
-                      {note.bookAbbrev} {note.chapterIndex + 1}
+                      {note.book_abbrev.toUpperCase()} {note.chapter_index + 1}
                     </h4>
                     <span className="material-symbols-outlined text-gray-400 text-sm">arrow_forward</span>
                   </div>

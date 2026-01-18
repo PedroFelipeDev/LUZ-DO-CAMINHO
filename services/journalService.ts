@@ -1,32 +1,26 @@
 import { JournalEntry } from '../types';
+import { supabase } from './supabase';
 
-// Mock data generator for 7 days
+const FALLBACK_ENTRIES: JournalEntry[] = [
+    {
+        id: '1',
+        dateDay: '18',
+        dateMonth: 'JAN',
+        title: 'A Paz que Excede',
+        preview: 'Em tempos de ansiedade, a paz de Deus guarda nossos corações e mentes em Cristo Jesus.',
+        imageUrl: 'https://images.unsplash.com/photo-1510936111840-65e151ad71bb?q=80&w=2690&auto=format&fit=crop'
+    },
+    {
+        id: '2',
+        dateDay: '17',
+        dateMonth: 'JAN',
+        title: 'Força na Fraqueza',
+        preview: 'Quando nos sentimos fracos, é então que somos fortes, pois o poder de Deus se aperfeiçoa na fraqueza.',
+        imageUrl: 'https://images.unsplash.com/photo-1475113548554-5a36f1f523d6?q=80&w=2564&auto=format&fit=crop'
+    }
+];
+
 export const getWeeklyEntries = async (): Promise<JournalEntry[]> => {
-    // In a real app, we would fetch from Firestore here.
-    // const q = query(collection(db, "journal"), where("uid", "==", uid)); ...
-
-    const entries: JournalEntry[] = [];
-    const today = new Date();
-
-    const titles = [
-        "Reflexão Diária",
-        "Estudo Bíblico",
-        "Gratidão",
-        "Versículo do Dia",
-        "Oração da Manhã",
-        "Notas de Sermão",
-        "Pensamentos da Noite"
-    ];
-
-    const previews = [
-        "Hoje refleti sobre a paz que excede todo o entendimento...",
-        "Li sobre o Sermão do Monte e como ele se aplica...",
-        "Sou grato pela saúde e pela família que Deus me deu...",
-        "O Senhor é o meu pastor, nada me faltará (Salmos 23)...",
-        "Senhor, guia meus passos neste novo dia que se inicia...",
-        "A mensagem de hoje foi sobre perseverança e fé...",
-        "Ao final deste dia, entrego minhas preocupações a Ti..."
-    ];
 
     // Generate entries for the last 7 days (including today)
     for (let i = 0; i < 7; i++) {

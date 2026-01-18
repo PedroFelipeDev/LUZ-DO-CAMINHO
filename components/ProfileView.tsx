@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
-import { User } from '@supabase/supabase-js';
+import { getProfileStats, ProfileStats } from '../services/api';
 import AuthView from './AuthView';
 
 const ProfileView: React.FC = () => {
-    const [user, setUser] = useState<User | null>(null);
+    const [user, setUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [authLoading, setAuthLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [stats, setStats] = useState<ProfileStats>({ favoritesCount: 0, notesCount: 0, streakDays: 0 });
 
     useEffect(() => {
         // Check active session
@@ -26,6 +27,13 @@ const ProfileView: React.FC = () => {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // Load Stats when user is available
+    useEffect(() => {
+        if (user) {
+            getProfileStats().then(setStats).catch(console.error);
+        }
+    }, [user]);
 
     const handleLogin = async () => {
         setAuthLoading(true);
@@ -108,14 +116,14 @@ const ProfileView: React.FC = () => {
                     </div>
 
                     {/* Stats */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-primary/10 p-4 rounded-xl text-center border border-primary/10">
-                            <span className="block text-2xl font-bold text-primary">7</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400 uppercase font-bold tracking-wider">Dias Consecutivos</span>
+                    <div className="grid grid-cols-2 gap-4 w-full">
+                        <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
+                            <p className="text-3xl font-bold text-[#fcfbf8] mb-1">{stats.streakDays}</p>
+                            <p className="text-xs text-[#fcfbf8]/60 uppercase tracking-widest">Dias Consecutivos</p>
                         </div>
-                        <div className="bg-primary/10 p-4 rounded-xl text-center border border-primary/10">
-                            <span className="block text-2xl font-bold text-primary">12</span>
-                            <span className="text-xs text-gray-600 dark:text-gray-400 uppercase font-bold tracking-wider">Favoritos</span>
+                        <div className="bg-white/5 rounded-2xl p-4 border border-white/10 text-center">
+                            <p className="text-3xl font-bold text-[#fcfbf8] mb-1">{stats.favoritesCount}</p>
+                            <p className="text-xs text-[#fcfbf8]/60 uppercase tracking-widest">Favoritos</p>
                         </div>
                     </div>
 

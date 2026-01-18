@@ -1,5 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { toggleFavorite } from '../services/api';
+import { toggleFavorite, saveNote, getNote } from '../services/api';
+
+// ... (imports remain the same, just adding saveNote, getNote)
+
+// ...
+
+
+
 import { getBible, BibleBook } from '../services/bibleService';
 
 interface RenderedChapter {
@@ -161,6 +168,7 @@ const ReadingView: React.FC = () => {
   useEffect(() => {
     const loadBible = async () => {
       try {
+        logReading(); // Register activity for streak
         const data = await getBible();
         setBible(data);
 
@@ -391,19 +399,29 @@ const ReadingView: React.FC = () => {
   };
 
   // --- Note Handling ---
-  const handleOpenNoteModal = (chapter: RenderedChapter) => {
+  const handleOpenNoteModal = async (chapter: RenderedChapter) => {
     setActiveNoteChapter(chapter);
-    // Load existing note from local storage
-    const savedNote = localStorage.getItem(`note-${chapter.key}`) || "";
-    setCurrentNote(savedNote);
+    // Load existing note from Cloud (Supabase)
+    setCurrentNote("Carregando..."); // Optimistic UI
+    try {
+      const savedNote = await getNote(chapter.bookAbbrev, chapter.chapterIndex);
+      setCurrentNote(savedNote);
+    } catch (error) {
+      console.error("Failed to load note", error);
+      setCurrentNote("");
+    }
     setNoteModalOpen(true);
   };
 
-  const handleSaveNote = () => {
+  const handleSaveNote = async () => {
     if (activeNoteChapter) {
-      localStorage.setItem(`note-${activeNoteChapter.key}`, currentNote);
-      // Optional: Show success feedback
-      setNoteModalOpen(false);
+      try {
+        await saveNote(activeNoteChapter.bookAbbrev, activeNoteChapter.chapterIndex, currentNote);
+        setNoteModalOpen(false);
+      } catch (error) {
+        console.error("Failed to save note", error);
+        alert("Erro ao salvar anotação.");
+      }
     }
   };
 
