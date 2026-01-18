@@ -17,7 +17,7 @@ const App: React.FC = () => {
       case Tab.CHAT:
         return <ChatView />;
       case Tab.JOURNAL:
-        return <JournalView />;
+        return <JournalView onNavigate={setActiveTab} />;
       case Tab.PROFILE:
         return <ProfileView />;
       case Tab.MISSION_CONTROL:
