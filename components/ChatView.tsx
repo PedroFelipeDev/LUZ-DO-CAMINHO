@@ -3,6 +3,8 @@ import { Message } from '../types';
 import { sendMessageStream, initChatSession } from '../services/geminiService';
 import { GenerateContentResponse } from "@google/genai";
 import { saveChatMessage, getChatHistory } from '../services/api';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const ChatView: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -135,13 +137,33 @@ const ChatView: React.FC = () => {
               <p className="text-[#9c9049] text-[12px] font-medium leading-normal mx-1">
                 {msg.role === 'user' ? 'Você' : 'Bíblia AI'}
               </p>
+
               <div className={`text-base font-normal leading-relaxed max-w-[85%] rounded-2xl px-4 py-3 shadow-sm border
                   ${msg.role === 'user'
                   ? 'rounded-br-none bg-chat-user dark:bg-primary/20 text-[#1c1a0d] dark:text-primary border-primary/20'
                   : 'rounded-bl-none bg-white dark:bg-gray-800 text-[#1c1a0d] dark:text-gray-100 border-gray-100 dark:border-gray-700'
                 }
                 `}>
-                <div className="whitespace-pre-wrap">{msg.text}</div>
+                <div className="prose dark:prose-invert max-w-none text-sm leading-relaxed">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm]}
+                    components={{
+                      p: ({ node, ...props }) => <p {...props} className="mb-2 last:mb-0" />,
+                      ul: ({ node, ...props }) => <ul {...props} className="list-disc list-outside ml-4 mb-2 space-y-1" />,
+                      ol: ({ node, ...props }) => <ol {...props} className="list-decimal list-outside ml-4 mb-2 space-y-1" />,
+                      li: ({ node, ...props }) => <li {...props} className="pl-1" />,
+                      strong: ({ node, ...props }) => <strong {...props} className="font-bold text-primary" />,
+                      em: ({ node, ...props }) => <em {...props} className="italic opacity-90" />,
+                      h1: ({ node, ...props }) => <h3 {...props} className="font-bold text-lg mb-2 mt-4 first:mt-0" />,
+                      h2: ({ node, ...props }) => <h4 {...props} className="font-bold text-base mb-2 mt-3" />,
+                      h3: ({ node, ...props }) => <h5 {...props} className="font-bold text-sm mb-1 mt-2" />,
+                      blockquote: ({ node, ...props }) => <blockquote {...props} className="border-l-4 border-primary/30 pl-3 italic text-gray-500 mb-2" />,
+                      code: ({ node, ...props }) => <code {...props} className="bg-gray-100 dark:bg-white/10 px-1 py-0.5 rounded text-xs font-mono" />,
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
+                </div>
                 {msg.isStreaming && <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse"></span>}
               </div>
             </div>
