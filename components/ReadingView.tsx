@@ -108,8 +108,29 @@ const ChapterSection: React.FC<{
         alert("Capítulo copiado para a área de transferência!");
       } catch (err) {
         console.error("Clipboard failed", err);
+        alert("Erro ao copiar para área de transferência.");
       }
     }
+  };
+
+  const checkAuth = async () => {
+    const { data } = await import('../services/supabase').then(m => m.supabase.auth.getSession());
+    if (!data.session) {
+      alert("Você precisa estar logado para realizar esta ação. Vá ao Perfil para entrar.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleFavoriteAction = async () => {
+    if (!await checkAuth()) return;
+
+    await handleFavorite();
+  };
+
+  const handleAnnotateAction = async () => {
+    if (!await checkAuth()) return;
+    onAnnotate(chapter);
   };
 
   const getFontSizeClass = () => {
@@ -156,14 +177,14 @@ const ChapterSection: React.FC<{
             </div>
             <span className="text-xs font-medium text-[#1c1a0d] dark:text-[#fcfbf8]">Compartilhar</span>
           </button>
-          <button onClick={() => onAnnotate(chapter)} className="flex flex-col items-center gap-1 group">
+          <button onClick={handleAnnotateAction} className="flex flex-col items-center gap-1 group">
             <div className="bg-white dark:bg-[#332e18] p-3 rounded-full shadow-sm group-active:scale-95 transition-all">
               <span className="material-symbols-outlined text-[#1c1a0d] dark:text-[#fcfbf8]">edit_note</span>
             </div>
             <span className="text-xs font-medium text-[#1c1a0d] dark:text-[#fcfbf8]">Anotar</span>
           </button>
           <button
-            onClick={handleFavorite}
+            onClick={handleFavoriteAction}
             disabled={isLoading}
             className={`flex flex-col items-center gap-1 group ${isLoading ? 'opacity-50' : ''}`}
           >
@@ -539,14 +560,14 @@ const ReadingView: React.FC = () => {
   const renderModalContent = () => {
     if (modalStep === 'BOOKS') {
       return (
-        <div className="grid grid-cols-5 gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-3">
           {bible.map(book => (
             <button
               key={book.abbrev}
               onClick={() => handleBookSelect(book)}
-              className="aspect-square flex items-center justify-center rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-primary/10 hover:text-primary transition-colors border border-gray-100 dark:border-white/10 shadow-sm"
+              className="aspect-square flex items-center justify-center rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-primary/10 hover:text-primary transition-colors border border-gray-100 dark:border-white/10 shadow-sm p-2"
             >
-              <span className="font-bold text-sm text-[#1c1a0d] dark:text-[#fcfbf8]">{formatAbbrev(book.abbrev)}</span>
+              <span className="font-bold text-xs sm:text-sm text-[#1c1a0d] dark:text-[#fcfbf8] text-center break-words">{formatAbbrev(book.abbrev)}</span>
             </button>
           ))}
         </div>
@@ -555,11 +576,11 @@ const ReadingView: React.FC = () => {
     if (modalStep === 'CHAPTERS' && selectedBook) {
       return (
         <div className="flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 shrink-0">
             <button onClick={() => setModalStep('BOOKS')} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full"><span className="material-symbols-outlined text-[#1c1a0d] dark:text-[#fcfbf8]">arrow_back</span></button>
             <h3 className="font-bold text-lg text-[#1c1a0d] dark:text-[#fcfbf8]">{selectedBook.name}</h3>
           </div>
-          <div className="grid grid-cols-5 gap-3 overflow-y-auto pb-4 custom-scrollbar">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] gap-3 overflow-y-auto pb-4 custom-scrollbar">
             {selectedBook.chapters.map((verses, idx) => (
               <button
                 key={idx}
@@ -578,11 +599,11 @@ const ReadingView: React.FC = () => {
       const verses = selectedBook.chapters[selectedChapterIdx];
       return (
         <div className="flex flex-col h-full">
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-2 mb-4 shrink-0">
             <button onClick={() => setModalStep('CHAPTERS')} className="p-1 hover:bg-gray-100 dark:hover:bg-white/5 rounded-full"><span className="material-symbols-outlined text-[#1c1a0d] dark:text-[#fcfbf8]">arrow_back</span></button>
             <h3 className="font-bold text-lg text-[#1c1a0d] dark:text-[#fcfbf8]">{selectedBook.name} {selectedChapterIdx + 1}</h3>
           </div>
-          <div className="grid grid-cols-5 gap-3 overflow-y-auto pb-4 custom-scrollbar">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(60px,1fr))] gap-3 overflow-y-auto pb-4 custom-scrollbar">
             {verses.map((_, idx) => (
               <button
                 key={idx}
@@ -628,8 +649,8 @@ const ReadingView: React.FC = () => {
 
       {/* Navigation Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/50 flex flex-col justify-end sm:justify-center items-center backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-[#1e1e1e] w-full max-w-2xl h-[80vh] sm:h-[600px] rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 bg-black/50 flex flex-col justify-end sm:justify-center items-center backdrop-blur-sm animate-in fade-in duration-200 p-4">
+          <div className="bg-white dark:bg-[#1e1e1e] w-full max-w-2xl max-h-[90vh] h-auto rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-300">
             <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
               <span className="font-bold text-lg text-[#1c1a0d] dark:text-[#fcfbf8]">
                 {modalStep === 'BOOKS' ? 'Selecionar Livro' :
