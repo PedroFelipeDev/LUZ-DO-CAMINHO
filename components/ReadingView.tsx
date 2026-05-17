@@ -317,7 +317,11 @@ const ChapterSection: React.FC<{
   );
 };
 
-const ReadingView: React.FC = () => {
+interface ReadingViewProps {
+  onModalToggle?: (isOpen: boolean) => void;
+}
+
+const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
   const [bible, setBible] = useState<BibleBook[]>([]);
   const [renderedChapters, setRenderedChapters] = useState<RenderedChapter[]>([]);
 
@@ -389,6 +393,13 @@ const ReadingView: React.FC = () => {
   const [modalStep, setModalStep] = useState<ModalStep>('BOOKS');
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapterIdx, setSelectedChapterIdx] = useState<number | null>(null);
+
+  useEffect(() => {
+    onModalToggle?.(modalOpen);
+    return () => {
+      onModalToggle?.(false);
+    };
+  }, [modalOpen, onModalToggle]);
 
   // Note Modal State
   const [noteModalOpen, setNoteModalOpen] = useState(false);
