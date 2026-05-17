@@ -69,7 +69,7 @@ const VerseParagraph: React.FC<{
         verseNum: vIdx + 1,
         text: verse
       });
-    }, 2000); // 2 seconds long press
+    }, 700); // 700ms long press
   };
 
   const endPress = () => {
