@@ -56,14 +56,11 @@ const VerseParagraph: React.FC<{
   hasNote: boolean;
 }> = ({ verseKey, verse, vIdx, fontSize, isSelected, isSelectionActive, onToggleSelection, bookName, chapterIndex, isHighlighted, hasNote }) => {
   const timerRef = useRef<any>(null);
-  const preventClickRef = useRef(false);
 
-  const startPress = () => {
-    preventClickRef.current = false;
-    if (isSelectionActive) return;
+  const startPress = (e: React.MouseEvent | React.TouchEvent) => {
+    if (isSelectionActive) return; // Completely ignore when selection is active, relying on onClick
 
     timerRef.current = setTimeout(() => {
-      preventClickRef.current = true;
       if (navigator.vibrate) navigator.vibrate(50);
       onToggleSelection(verseKey, {
         id: verseKey,
@@ -80,7 +77,17 @@ const VerseParagraph: React.FC<{
       clearTimeout(timerRef.current);
       timerRef.current = null;
     }
+  };
 
+  const cancelPress = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleParagraphClick = (e: React.MouseEvent) => {
+    // Strictly handle selections on tap/click once selection mode is active
     if (isSelectionActive) {
       onToggleSelection(verseKey, {
         id: verseKey,
@@ -92,22 +99,16 @@ const VerseParagraph: React.FC<{
     }
   };
 
-  const cancelPress = () => {
-    if (timerRef.current) {
-      clearTimeout(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
   return (
     <p
       id={`verse-${verseKey}`}
-      onMouseDown={startPress}
-      onMouseUp={endPress}
-      onMouseLeave={cancelPress}
-      onTouchStart={startPress}
-      onTouchEnd={endPress}
-      onTouchMove={cancelPress}
+      onClick={handleParagraphClick}
+      onMouseDown={isSelectionActive ? undefined : startPress}
+      onMouseUp={isSelectionActive ? undefined : endPress}
+      onMouseLeave={isSelectionActive ? undefined : cancelPress}
+      onTouchStart={isSelectionActive ? undefined : startPress}
+      onTouchEnd={isSelectionActive ? undefined : endPress}
+      onTouchMove={isSelectionActive ? undefined : cancelPress}
       className={`transition-all duration-300 rounded px-2.5 py-1.5 relative cursor-pointer select-none ${
         isSelected 
           ? 'bg-primary/25 border-l-4 border-primary pl-4' 
