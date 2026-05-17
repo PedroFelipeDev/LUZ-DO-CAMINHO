@@ -76,9 +76,19 @@ const ProfileView: React.FC = () => {
 
     const handleLogout = async () => {
         try {
-            await supabase.auth.signOut();
+            // Log out only local session to avoid global 403 blocks from Supabase router
+            await supabase.auth.signOut({ scope: 'local' });
         } catch (error) {
             console.error("Logout failed", error);
+        } finally {
+            // Manual Fallback: force delete all local Supabase auth tokens so user session is fully cleared
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+                const key = localStorage.key(i);
+                if (key && (key.startsWith('sb-') || key.includes('supabase.auth.token'))) {
+                    localStorage.removeItem(key);
+                }
+            }
+            setUser(null);
         }
     };
 
