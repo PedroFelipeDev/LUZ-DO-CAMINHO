@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { toggleFavorite, saveNote, getNote, logReading, checkFavorite } from '../services/api';
+import { supabase } from '../services/supabase';
 
 // ... (imports remain the same, just adding saveNote, getNote)
 
@@ -220,7 +221,7 @@ const ChapterSection: React.FC<{
   };
 
   const checkAuth = async () => {
-    const { data } = await import('../services/supabase').then(m => m.supabase.auth.getSession());
+    const { data } = await supabase.auth.getSession();
     if (!data.session) {
       alert("Você precisa estar logado para realizar esta ação. Vá ao Perfil para entrar.");
       return false;
@@ -515,7 +516,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
       return;
     }
 
-    const { data } = await import('../services/supabase').then(m => m.supabase.auth.getSession());
+    const { data } = await supabase.auth.getSession();
     if (!data.session) {
       alert("Você precisa estar logado para salvar versículos. Vá ao Perfil para entrar.");
       return;
@@ -545,7 +546,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
       return;
     }
 
-    const { data } = await import('../services/supabase').then(m => m.supabase.auth.getSession());
+    const { data } = await supabase.auth.getSession();
     if (!data.session) {
       alert("Você precisa estar logado para criar anotações. Vá ao Perfil para entrar.");
       return;
