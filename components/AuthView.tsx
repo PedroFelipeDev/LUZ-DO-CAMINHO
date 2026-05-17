@@ -1,65 +1,230 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { supabase } from '../services/supabase';
 
-interface AuthViewProps {
-    onLogin: () => void;
-    isLoading?: boolean;
-    errorMessage?: string | null;
-}
+const AuthView: React.FC = () => {
+    const [isSignUp, setIsSignUp] = useState(false);
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [fullName, setFullName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-const AuthView: React.FC<AuthViewProps> = ({ onLogin, isLoading = false, errorMessage }) => {
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setErrorMessage(null);
+        setSuccessMessage(null);
+
+        // Simple validation
+        if (!email.trim() || !password.trim()) {
+            setErrorMessage("Por favor, preencha todos os campos.");
+            setIsLoading(false);
+            return;
+        }
+
+        if (password.length < 6) {
+            setErrorMessage("A senha deve ter no mínimo 6 caracteres.");
+            setIsLoading(false);
+            return;
+        }
+
+        if (isSignUp && !fullName.trim()) {
+            setErrorMessage("Por favor, informe seu nome.");
+            setIsLoading(false);
+            return;
+        }
+
+        try {
+            if (isSignUp) {
+                // Register new user
+                const { data, error } = await supabase.auth.signUp({
+                    email: email.trim(),
+                    password: password,
+                    options: {
+                        data: {
+                            full_name: fullName.trim(),
+                        }
+                    }
+                });
+
+                if (error) throw error;
+
+                // Depending on Supabase configuration, the user might be signed in automatically
+                if (data.session) {
+                    setSuccessMessage("Conta criada e conectada com sucesso!");
+                } else {
+                    setSuccessMessage("Cadastro realizado! Um e-mail de confirmação foi enviado.");
+                    // Reset fields
+                    setEmail('');
+                    setPassword('');
+                    setFullName('');
+                }
+            } else {
+                // Log in existing user
+                const { error } = await supabase.auth.signInWithPassword({
+                    email: email.trim(),
+                    password: password,
+                });
+
+                if (error) throw error;
+            }
+        } catch (error: any) {
+            console.error("Auth error:", error);
+            // Translate common Supabase Auth errors to Portuguese
+            let message = error.message;
+            if (message === "Invalid login credentials") {
+                message = "E-mail ou senha incorretos. Por favor, tente novamente.";
+            } else if (message === "User already registered") {
+                message = "Este endereço de e-mail já está cadastrado.";
+            }
+            setErrorMessage(message || "Ocorreu um erro na autenticação.");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
-        <div className="flex flex-col items-center justify-center h-full p-8 bg-background-light dark:bg-background-dark text-center relative overflow-hidden">
-            {/* Background Decorative Elements */}
+        <div className="flex flex-col items-center justify-center min-h-full p-6 bg-background-light dark:bg-background-dark text-center relative overflow-y-auto custom-scrollbar">
+            {/* Background Decorative Blurs */}
             <div className="absolute top-[-10%] left-[-10%] w-64 h-64 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-[-10%] right-[-10%] w-80 h-80 bg-primary/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="z-10 flex flex-col items-center space-y-8 max-w-sm w-full animate-in fade-in zoom-in duration-500">
-                {/* Logo / Branding */}
-                <div className="flex flex-col items-center space-y-4">
-                    <div className="w-24 h-24 bg-gradient-to-br from-primary to-[#d4b60b] rounded-3xl rotate-3 flex items-center justify-center shadow-lg shadow-primary/20 mb-2">
-                        <span className="material-symbols-outlined text-5xl text-white drop-shadow-sm">light_mode</span>
+            <div className="z-10 flex flex-col items-center space-y-6 max-w-sm w-full py-8 animate-in fade-in zoom-in duration-500">
+                
+                {/* App Branding */}
+                <div className="flex flex-col items-center space-y-3">
+                    <div className="w-20 h-20 bg-gradient-to-br from-primary to-[#d4b60b] rounded-3xl rotate-3 flex items-center justify-center shadow-lg shadow-primary/20">
+                        <span className="material-symbols-outlined text-4xl text-white drop-shadow-sm">light_mode</span>
                     </div>
                     <div>
-                        <h1 className="font-serif text-3xl font-bold text-[#1c1a0d] dark:text-[#fcfbf8] leading-tight">
+                        <h1 className="font-serif text-2xl font-bold text-[#1c1a0d] dark:text-[#fcfbf8] leading-tight">
                             Luz do Caminho
                         </h1>
-                        <p className="font-display text-gray-500 dark:text-gray-400 text-sm mt-2 max-w-[260px] mx-auto leading-relaxed">
-                            Sua dose diária de inspiração, sabedoria e conexão espiritual.
+                        <p className="font-display text-gray-500 dark:text-gray-400 text-xs mt-1 max-w-[260px] mx-auto leading-relaxed">
+                            Sua jornada espiritual diária com paz, reflexão e sabedoria.
                         </p>
                     </div>
                 </div>
 
-                {/* Login Action */}
-                <div className="w-full space-y-6 pt-6">
+                {/* Tab Switcher (Login / Signup) */}
+                <div className="w-full bg-gray-100 dark:bg-white/5 p-1 rounded-xl flex shrink-0">
                     <button
-                        onClick={onLogin}
-                        disabled={isLoading}
-                        className="w-full group relative flex items-center justify-center gap-3 bg-white dark:bg-[#1e1e1e] hover:bg-gray-50 dark:hover:bg-[#252525] border border-gray-200 dark:border-white/10 text-[#1c1a0d] dark:text-white font-medium py-4 px-6 rounded-xl shadow-sm hover:shadow-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:pointer-events-none"
+                        type="button"
+                        onClick={() => {
+                            setIsSignUp(false);
+                            setErrorMessage(null);
+                            setSuccessMessage(null);
+                        }}
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                            !isSignUp
+                                ? 'bg-white dark:bg-[#332e18] text-[#1c1a0d] dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                        }`}
                     >
-                        {/* Google Icon SVG */}
-                        <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-                            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                        </svg>
-                        <span>Continuar com Google</span>
-                        {isLoading && (
-                            <div className="absolute right-6 w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin text-gray-400"></div>
-                        )}
+                        Entrar
                     </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            setIsSignUp(true);
+                            setErrorMessage(null);
+                            setSuccessMessage(null);
+                        }}
+                        className={`flex-1 py-2 text-xs font-semibold rounded-lg transition-all ${
+                            isSignUp
+                                ? 'bg-white dark:bg-[#332e18] text-[#1c1a0d] dark:text-white shadow-sm'
+                                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
+                        }`}
+                    >
+                        Criar Conta
+                    </button>
+                </div>
 
-                    <p className="text-xs text-center text-gray-400 px-4">
-                        Ao criar uma conta, você concorda com nossos <br />
-                        <button className="underline hover:text-primary transition-colors">Termos de Uso</button> e <button className="underline hover:text-primary transition-colors">Política de Privacidade</button>.
-                    </p>
-
-                    {errorMessage && (
-                        <div className="bg-red-50 dark:bg-red-900/10 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-sm px-4 py-3 rounded-lg text-center animate-in fade-in slide-in-from-top-1">
-                            {errorMessage}
+                {/* Auth Form */}
+                <form onSubmit={handleSubmit} className="w-full space-y-4 text-left">
+                    {isSignUp && (
+                        <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <label className="text-xs font-medium text-gray-600 dark:text-gray-300 pl-1">Nome Completo</label>
+                            <div className="relative">
+                                <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-gray-400 text-lg">person</span>
+                                </span>
+                                <input
+                                    type="text"
+                                    value={fullName}
+                                    onChange={(e) => setFullName(e.target.value)}
+                                    placeholder="Como quer ser chamado?"
+                                    className="w-full pl-10 pr-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-[#1c1a0d] dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                                    required
+                                />
+                            </div>
                         </div>
                     )}
-                </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-300 pl-1">E-mail</label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <span className="material-symbols-outlined text-gray-400 text-lg">mail</span>
+                            </span>
+                            <input
+                                type="email"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                placeholder="seu.email@exemplo.com"
+                                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-[#1c1a0d] dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <label className="text-xs font-medium text-gray-600 dark:text-gray-300 pl-1">Senha</label>
+                        <div className="relative">
+                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <span className="material-symbols-outlined text-gray-400 text-lg">lock</span>
+                            </span>
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="••••••••"
+                                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl text-sm text-[#1c1a0d] dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all shadow-sm"
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <button
+                        type="submit"
+                        disabled={isLoading}
+                        className="w-full mt-2 relative flex items-center justify-center bg-primary hover:bg-[#d4b60b] dark:bg-primary dark:hover:bg-[#d4b60b] text-[#1c1a0d] font-bold py-3.5 px-6 rounded-xl shadow-md hover:shadow-lg transition-all active:scale-[0.98] disabled:opacity-75 disabled:pointer-events-none"
+                    >
+                        <span>{isSignUp ? 'Criar Minha Conta' : 'Entrar'}</span>
+                        {isLoading && (
+                            <div className="absolute right-6 w-5 h-5 border-2 border-[#1c1a0d] border-t-transparent rounded-full animate-spin"></div>
+                        )}
+                    </button>
+                </form>
+
+                {/* Notifications */}
+                {errorMessage && (
+                    <div className="w-full bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 text-red-600 dark:text-red-400 text-xs px-4 py-3 rounded-xl text-center animate-in fade-in slide-in-from-top-2 duration-300">
+                        {errorMessage}
+                    </div>
+                )}
+
+                {successMessage && (
+                    <div className="w-full bg-green-50 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30 text-green-600 dark:text-green-400 text-xs px-4 py-3 rounded-xl text-center animate-in fade-in slide-in-from-top-2 duration-300">
+                        {successMessage}
+                    </div>
+                )}
+
+                <p className="text-[10px] text-center text-gray-400 px-4 mt-2 leading-relaxed">
+                    Sua segurança é nossa prioridade. Para fins de sincronização espiritual entre dispositivos, armazenamos seus dados de progresso de forma criptografada.
+                </p>
             </div>
         </div>
     );

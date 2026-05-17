@@ -61,6 +61,31 @@ export const checkFavorite = async (verseRef: string): Promise<boolean> => {
     return !!data;
 };
 
+export interface Favorite {
+    id: number;
+    user_id?: string;
+    verse_ref: string;
+    text: string;
+    created_at?: string;
+}
+
+export const getAllFavorites = async (): Promise<Favorite[]> => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return [];
+
+    const { data, error } = await supabase
+        .from('favorites')
+        .select('*')
+        .eq('user_id', session.user.id)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error("Error fetching favorites:", error);
+        return [];
+    }
+    return data as Favorite[];
+};
+
 // --- NOTES ---
 
 export interface Note {
@@ -223,11 +248,11 @@ export const getProfileStats = async (): Promise<ProfileStats> => {
 
         if (lastRead === todayStr || lastRead === yesterdayStr) {
             streak = 1;
-            // Iterate backwards
-            let currentCheck = new Date(lastRead);
+            // Iterate backwards forcing UTC parsing to avoid client timezone shifts
+            let currentCheck = new Date(lastRead + "T00:00:00Z");
             for (let i = 1; i < logs.length; i++) {
-                currentCheck.setDate(currentCheck.getDate() - 1);
-                const checkStr = toDateString(currentCheck);
+                currentCheck.setUTCDate(currentCheck.getUTCDate() - 1);
+                const checkStr = currentCheck.toISOString().split('T')[0];
                 if (logs[i].read_date === checkStr) {
                     streak++;
                 } else {

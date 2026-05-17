@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Design Reading - Luz do Caminho</title>
+
+    <!-- Fontes e Ícones -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Configuração das cores customizadas usadas no projeto -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Mude para 'media' se preferir usar o tema do sistema
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Georgia', 'Cambria', '"Times New Roman"', 'Times', 'serif'],
+                    },
+                    colors: {
+                        primary: '#9c9049',
+                        'background-light': '#fdfcf7',
+                        'background-dark': '#0a0a09',
+                        'chat-user': '#f4f0db',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #f3f4f6;
+            /* Fundo cinza claro fora do app */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+
+        /* Utilitário para esconder a barra de rolagem mas permitir rolagem (no-scrollbar) */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            /* IE and Edge */
+            scrollbar-width: none;
+            /* Firefox */
+        }
+
+        /* Classe utilitária para ícones preenchidos do Material Symbols */
+        .filled-icon {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 48;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 py-10">
+
+    <!-- Container principal do App (simulando a tela de celular max-w-[480px]) -->
+    <div
+        class="relative h-[850px] max-h-screen w-full overflow-hidden max-w-[480px] mx-auto bg-background-light dark:bg-background-dark border border-gray-200 dark:border-gray-800 shadow-2xl rounded-3xl">
+
+        <!-- App Container onde fica o conteúdo renderizado -->
+        <div class="h-full pb-[80px]"> <!-- Padding for bottom nav -->
+
+            <!-- ReadingView -->
+            <div class="flex flex-col h-full bg-background-light dark:bg-background-dark relative">
+
+                <!-- Top Navigation Bar (Header) -->
+                <header
+                    class="sticky top-0 z-40 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-gray-100 dark:border-white/10 rounded-t-3xl">
+                    <div class="flex items-center justify-between px-4 h-16 max-w-2xl mx-auto w-full">
+                        <button
+                            class="flex items-center gap-1 text-[#1c1a0d] dark:text-[#fcfbf8] font-bold text-lg hover:opacity-70 transition-opacity">
+                            Gênesis 1:1
+                            <span class="material-symbols-outlined text-primary text-2xl">expand_more</span>
+                        </button>
+
+                        <div class="flex items-center gap-4">
+                            <button
+                                class="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors flex items-center justify-center">
+                                <span class="material-symbols-outlined">text_fields</span>
+                                <span class="text-[10px] ml-1 font-bold">A</span>
+                            </button>
+                            <button class="text-primary hover:bg-primary/10 p-2 rounded-full transition-colors">
+                                <span class="material-symbols-outlined filled-icon">bookmark</span>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- Main Content (Reading Area) -->
+                <div class="flex-1 overflow-y-auto relative no-scrollbar">
+                    <div class="max-w-2xl mx-auto px-6 py-6 space-y-12 pb-24">
+                        <!-- Extra padding no final devido a barra de navegação sobreposta -->
+
+                        <section class="scroll-mt-20">
+                            <div class="mb-4">
+                                <h2
+                                    class="font-serif text-3xl font-bold text-[#1c1a0d] dark:text-[#fcfbf8] leading-tight">
+                                    Gênesis 1
+                                </h2>
+                                <div class="h-1 w-12 bg-primary mt-2 rounded-full"></div>
+                            </div>
+
+                            <!-- Texto da Bíblia Capitular estilo drop-cap -->
+                            <article
+                                class="font-serif text-justify text-[#1c1a0d] dark:text-[#e0e0e0] space-y-4 text-xl leading-relaxed">
+
+                                <p class="transition-colors duration-500 rounded p-1 relative">
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">1</sup>
+                                    <span class="float-left font-bold text-primary mr-2 leading-[0.8] mt-2 mb-[-8px]"
+                                        style="font-size: 3.5rem;">
+                                        N
+                                    </span>
+                                    o princípio Deus criou os céus e a terra.
+                                </p>
+
+                                <p class="transition-colors duration-500 rounded p-1 relative">
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">2</sup>
+                                    Era a terra sem forma e vazia; trevas cobriam a face do abismo, e o Espírito de Deus
+                                    se movia sobre a face das águas.
+                                </p>
+
+                                <p class="transition-colors duration-500 rounded p-1 relative">
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">3</sup>
+                                    Disse Deus: "Haja luz", e houve luz.
+                                </p>
+
+                                <p class="transition-colors duration-500 rounded p-1 relative">
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">4</sup>
+                                    Deus viu que a luz era boa, e separou a luz das trevas.
+                                </p>
+
+                                <p class="transition-colors duration-500 rounded p-1 relative bg-primary/20">
+                                    <!-- Simulando highlight de clique num versículo -->
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">5</sup>
+                                    Deus chamou à luz dia, e às trevas chamou noite. Passaram-se a tarde e a manhã; esse
+                                    foi o primeiro dia.
+                                </p>
+
+                                <p class="transition-colors duration-500 rounded p-1 relative">
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">6</sup>
+                                    Depois disse Deus: "Haja entre as águas um firmamento que separe águas de águas".
+                                </p>
+
+                                <p class="transition-colors duration-500 rounded p-1 relative">
+                                    <sup class="text-xs text-primary font-bold mr-1 align-top">7</sup>
+                                    Então Deus fez o firmamento e separou as águas que estavam embaixo do firmamento das
+                                    que estavam por cima. E assim foi.
+                                </p>
+                            </article>
+
+                            <!-- Quick Actions Bar da aba Leitura -->
+                            <div class="px-6 py-8">
+                                <div
+                                    class="flex items-center justify-around bg-primary/10 dark:bg-primary/5 rounded-2xl p-4">
+
+                                    <button class="flex flex-col items-center gap-1 group">
+                                        <div
+                                            class="bg-white dark:bg-[#332e18] p-3 rounded-full shadow-sm group-active:scale-95 transition-all">
+                                            <span
+                                                class="material-symbols-outlined text-[#1c1a0d] dark:text-[#fcfbf8]">share</span>
+                                        </div>
+                                        <span
+                                            class="text-xs font-medium text-[#1c1a0d] dark:text-[#fcfbf8]">Compartilhar</span>
+                                    </button>
+
+                                    <button class="flex flex-col items-center gap-1 group">
+                                        <div
+                                            class="bg-white dark:bg-[#332e18] p-3 rounded-full shadow-sm group-active:scale-95 transition-all">
+                                            <span
+                                                class="material-symbols-outlined text-[#1c1a0d] dark:text-[#fcfbf8]">edit_note</span>
+                                        </div>
+                                        <span
+                                            class="text-xs font-medium text-[#1c1a0d] dark:text-[#fcfbf8]">Anotar</span>
+                                    </button>
+
+                                    <button class="flex flex-col items-center gap-1 group">
+                                        <div
+                                            class="bg-white dark:bg-[#332e18] p-3 rounded-full shadow-sm group-active:scale-95 transition-all">
+                                            <span class="material-symbols-outlined text-primary filled-icon">
+                                                star
+                                            </span>
+                                        </div>
+                                        <span class="text-xs font-medium text-[#1c1a0d] dark:text-[#fcfbf8]">
+                                            Favorito
+                                        </span>
+                                    </button>
+
+                                </div>
+                            </div>
+                        </section>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Bottom Nav Global (BottomNav.tsx) -->
+        <nav
+            class="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-[#1a180d]/95 backdrop-blur-lg border-t border-gray-100 dark:border-white/10 pb-6 pt-2 z-50 rounded-b-3xl">
+            <div class="flex items-center justify-between max-w-md mx-auto px-6">
+
+                <!-- Aba Leitura (Ativa) -->
+                <button class="flex flex-col items-center gap-1 text-primary">
+                    <span class="material-symbols-outlined text-[24px] filled-icon font-bold">menu_book</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Leitura</span>
+                </button>
+
+                <!-- Aba Chat -->
+                <button
+                    class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[24px]">chat_bubble</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Chat</span>
+                </button>
+
+                <!-- Aba Diário -->
+                <button
+                    class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[24px]">edit_note</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Diário</span>
+                </button>
+
+                <!-- Aba Perfil -->
+                <button
+                    class="flex flex-col items-center gap-1 text-gray-400 dark:text-gray-500 hover:text-primary transition-colors">
+                    <span class="material-symbols-outlined text-[24px]">person</span>
+                    <span class="text-[10px] font-bold uppercase tracking-wider">Perfil</span>
+                </button>
+
+            </div>
+        </nav>
+
+    </div>
+
+</body>
+
+</html>
