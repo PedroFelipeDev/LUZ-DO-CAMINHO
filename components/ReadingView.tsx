@@ -34,6 +34,15 @@ const formatAbbrev = (abbrev: string): string => {
   return abbrev.charAt(0).toUpperCase() + abbrev.slice(1);
 };
 
+const isNewTestament = (abbrev: string): boolean => {
+  const ntAbbrevs = [
+    'mt', 'mc', 'lc', 'jo', 'at', 'rm', '1co', '2co', 'gl', 'ef', 'fp', 'cl', 
+    '1ts', '2ts', '1tm', '2tm', 'tt', 'fm', 'hb', 'tg', '1pe', '2pe', '1jo', 
+    '2jo', '3jo', 'jd', 'ap'
+  ];
+  return ntAbbrevs.includes(abbrev.toLowerCase());
+};
+
 export interface SelectedVerseInfo {
   id: string;
   bookName: string;
@@ -395,9 +404,13 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
   const [modalStep, setModalStep] = useState<ModalStep>('BOOKS');
   const [selectedBook, setSelectedBook] = useState<BibleBook | null>(null);
   const [selectedChapterIdx, setSelectedChapterIdx] = useState<number | null>(null);
+  const [bookSearchQuery, setBookSearchQuery] = useState("");
 
   useEffect(() => {
     onModalToggle?.(modalOpen);
+    if (!modalOpen) {
+      setBookSearchQuery("");
+    }
     return () => {
       onModalToggle?.(false);
     };
@@ -412,6 +425,13 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
   const [headerIsFavorite, setHeaderIsFavorite] = useState(false);
   // Track the key of the chapter currently driving the title/focus
   const [activeChapterKey, setActiveChapterKey] = useState<string | null>(null);
+
+  // Save last read chapter to localStorage
+  useEffect(() => {
+    if (activeChapterKey) {
+      localStorage.setItem('last_read_chapter', activeChapterKey);
+    }
+  }, [activeChapterKey]);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
@@ -668,25 +688,36 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
 
         // Check for pending navigation (Deep Link)
         const pendingKey = localStorage.getItem('pending_nav_chapter');
+        // Check for persisted last read chapter
+        const lastReadKey = localStorage.getItem('last_read_chapter');
 
-        if (pendingKey && data.length > 0) {
-          localStorage.removeItem('pending_nav_chapter');
-          const [bookAbbrev, chapterIdxStr] = pendingKey.split('-');
-          const chapterIdx = parseInt(chapterIdxStr, 10);
+        const targetKey = pendingKey || lastReadKey;
 
-          const book = data.find(b => b.abbrev === bookAbbrev);
-          if (book) {
-            const initialChapter: RenderedChapter = {
-              bookAbbrev: book.abbrev,
-              bookName: book.name || book.abbrev,
-              chapterIndex: chapterIdx,
-              verses: book.chapters[chapterIdx],
-              key: pendingKey
-            };
-            setRenderedChapters([initialChapter]);
-            setActiveChapterKey(initialChapter.key);
-            setCurrentTitle(`${initialChapter.bookName} ${initialChapter.chapterIndex + 1}:1`);
-            return; // Skip default genesis load
+        if (targetKey && data.length > 0) {
+          if (pendingKey) {
+            localStorage.removeItem('pending_nav_chapter');
+          }
+          const parts = targetKey.split('-');
+          if (parts.length === 2) {
+            const bookAbbrev = parts[0];
+            const chapterIdx = parseInt(parts[1], 10);
+
+            if (!isNaN(chapterIdx)) {
+              const book = data.find(b => b.abbrev === bookAbbrev);
+              if (book && book.chapters && book.chapters[chapterIdx]) {
+                const initialChapter: RenderedChapter = {
+                  bookAbbrev: book.abbrev,
+                  bookName: book.name || book.abbrev,
+                  chapterIndex: chapterIdx,
+                  verses: book.chapters[chapterIdx],
+                  key: targetKey
+                };
+                setRenderedChapters([initialChapter]);
+                setActiveChapterKey(initialChapter.key);
+                setCurrentTitle(`${initialChapter.bookName} ${initialChapter.chapterIndex + 1}`);
+                return; // Skip default genesis load
+              }
+            }
           }
         }
 
@@ -927,18 +958,95 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
   // --- Modal Content ---
   const renderModalContent = () => {
     if (modalStep === 'BOOKS') {
+      const filteredBible = bible.filter(book => {
+        const name = book.name || "";
+        const abbrev = book.abbrev || "";
+        const query = bookSearchQuery.toLowerCase();
+        return name.toLowerCase().includes(query) || abbrev.toLowerCase().includes(query);
+      });
+
+      const otBooks = filteredBible.filter(b => !isNewTestament(b.abbrev));
+      const ntBooks = filteredBible.filter(b => isNewTestament(b.abbrev));
+
       return (
-        <div className="flex-1 overflow-y-auto p-4 pb-16 custom-scrollbar">
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-3">
-            {bible.map(book => (
-              <button
-                key={book.abbrev}
-                onClick={() => handleBookSelect(book)}
-                className="aspect-square flex items-center justify-center rounded-lg bg-gray-50 dark:bg-white/5 hover:bg-primary/10 hover:text-primary transition-colors border border-gray-100 dark:border-white/10 shadow-sm p-2"
-              >
-                <span className="font-bold text-xs sm:text-sm text-[#1c1a0d] dark:text-[#fcfbf8] text-center break-words">{formatAbbrev(book.abbrev)}</span>
-              </button>
-            ))}
+        <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-white dark:bg-[#1e1e1e]">
+          {/* Combobox Search Bar */}
+          <div className="px-4 py-3 shrink-0 border-b border-gray-100 dark:border-white/5 flex flex-col gap-2 bg-gray-50/50 dark:bg-white/[0.02]">
+            <div className="relative flex items-center">
+              <span className="material-symbols-outlined absolute left-3 text-gray-400 dark:text-gray-500 pointer-events-none select-none text-xl">search</span>
+              <input
+                type="text"
+                placeholder="Pesquisar livro... (ex: Gênesis, mt, sl)"
+                value={bookSearchQuery}
+                onChange={(e) => setBookSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-2 bg-white dark:bg-[#2a2a2a] border border-gray-200 dark:border-white/10 rounded-full text-sm placeholder-gray-400 dark:placeholder-gray-500 text-[#1c1a0d] dark:text-[#fcfbf8] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+              />
+              {bookSearchQuery && (
+                <button
+                  onClick={() => setBookSearchQuery("")}
+                  className="absolute right-3 p-1 rounded-full text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 flex items-center justify-center"
+                >
+                  <span className="material-symbols-outlined text-sm font-bold">close</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Book Lists Sectioned and Colored */}
+          <div className="flex-1 overflow-y-auto p-4 pb-16 custom-scrollbar flex flex-col gap-6">
+            {/* Old Testament (Antigo Testamento) */}
+            {otBooks.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-1 h-5 bg-emerald-500 rounded-full"></span>
+                  <h4 className="font-serif text-sm font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Antigo Testamento</h4>
+                  <span className="text-[10px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full font-bold">{otBooks.length}</span>
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-3">
+                  {otBooks.map(book => (
+                    <button
+                      key={book.abbrev}
+                      onClick={() => handleBookSelect(book)}
+                      className="aspect-square flex flex-col items-center justify-center rounded-2xl bg-emerald-50/40 hover:bg-emerald-50 dark:bg-emerald-500/5 dark:hover:bg-emerald-500/15 border border-emerald-100/50 dark:border-emerald-500/10 hover:border-emerald-300 dark:hover:border-emerald-500/30 text-emerald-800 dark:text-emerald-300 transition-all hover:-translate-y-0.5 shadow-sm p-1 active:scale-95 duration-200 text-center"
+                    >
+                      <span className="font-bold text-sm sm:text-base leading-tight">{formatAbbrev(book.abbrev)}</span>
+                      <span className="text-[9px] sm:text-[10px] opacity-75 dark:opacity-60 font-medium truncate max-w-full px-0.5 leading-tight">{book.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* New Testament (Novo Testamento) */}
+            {ntBooks.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <span className="w-1 h-5 bg-amber-500 rounded-full"></span>
+                  <h4 className="font-serif text-sm font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Novo Testamento</h4>
+                  <span className="text-[10px] bg-amber-500/10 text-amber-600 dark:text-amber-400 px-2 py-0.5 rounded-full font-bold">{ntBooks.length}</span>
+                </div>
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(80px,1fr))] gap-3">
+                  {ntBooks.map(book => (
+                    <button
+                      key={book.abbrev}
+                      onClick={() => handleBookSelect(book)}
+                      className="aspect-square flex flex-col items-center justify-center rounded-2xl bg-amber-50/40 hover:bg-amber-50 dark:bg-amber-500/5 dark:hover:bg-amber-500/15 border border-amber-100/50 dark:border-amber-500/10 hover:border-amber-300 dark:hover:border-amber-500/30 text-amber-800 dark:text-amber-300 transition-all hover:-translate-y-0.5 shadow-sm p-1 active:scale-95 duration-200 text-center"
+                    >
+                      <span className="font-bold text-sm sm:text-base leading-tight">{formatAbbrev(book.abbrev)}</span>
+                      <span className="text-[9px] sm:text-[10px] opacity-75 dark:opacity-60 font-medium truncate max-w-full px-0.5 leading-tight">{book.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Empty State */}
+            {otBooks.length === 0 && ntBooks.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-12 text-gray-400 dark:text-gray-500">
+                <span className="material-symbols-outlined text-4xl mb-2">menu_book</span>
+                <p className="text-sm font-medium">Nenhum livro encontrado para "{bookSearchQuery}"</p>
+              </div>
+            )}
           </div>
         </div>
       );
