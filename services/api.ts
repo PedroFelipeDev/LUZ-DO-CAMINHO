@@ -206,12 +206,27 @@ export const logReading = async (): Promise<void> => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // Log reading for today (ignore duplicate error due to unique constraint)
-    await supabase
-        .from('reading_logs')
-        .insert({ user_id: session.user.id })
-        .select()
-        .maybeSingle(); // We don't care about result, just fire and forget
+    // Get current date string in UTC YYYY-MM-DD (matching database CURRENT_DATE default)
+    const todayUTC = new Date().toISOString().split('T')[0];
+
+    try {
+        // Pre-check if reading log already exists for today to avoid 409 Conflict network warning
+        const { data: existingLog } = await supabase
+            .from('reading_logs')
+            .select('id')
+            .eq('user_id', session.user.id)
+            .eq('read_date', todayUTC)
+            .maybeSingle();
+
+        if (!existingLog) {
+            // Log reading for today
+            await supabase
+                .from('reading_logs')
+                .insert({ user_id: session.user.id });
+        }
+    } catch (error) {
+        console.error("Error logging reading:", error);
+    }
 };
 
 export interface ProfileStats {
