@@ -12,8 +12,14 @@ const getAIClient = (): GoogleGenAI => {
   return ai;
 };
 
-export const initChatSession = (): Chat => {
+export const initChatSession = (history: { role: 'user' | 'model', text: string }[] = []): Chat => {
   const client = getAIClient();
+  
+  const formattedHistory = history.map(msg => ({
+    role: msg.role,
+    parts: [{ text: msg.text }]
+  }));
+
   chatSession = client.chats.create({
     model: 'gemini-3-flash-preview',
     config: {
@@ -21,6 +27,7 @@ export const initChatSession = (): Chat => {
       temperature: 0.7, // Slightly warmer for empathetic responses
       candidateCount: 1,
     },
+    history: formattedHistory
   });
   return chatSession;
 };

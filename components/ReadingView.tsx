@@ -111,6 +111,7 @@ const VerseParagraph: React.FC<{
   return (
     <p
       id={`verse-${verseKey}`}
+      data-verse={vIdx + 1}
       onClick={handleParagraphClick}
       onMouseDown={isSelectionActive ? undefined : startPress}
       onMouseUp={isSelectionActive ? undefined : endPress}
@@ -633,6 +634,25 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
     setIsSelectionMode(false);
   };
 
+  const handleCopySelected = async () => {
+    if (Object.keys(selectedVerses).length === 0) return;
+    
+    const text = formatSelectedText();
+    const ref = formatSelectedRef();
+    
+    try {
+      await navigator.clipboard.writeText(`${ref}\n\n${text}`);
+      alert("Versículos copiados para a área de transferência!");
+    } catch (err) {
+      console.error("Clipboard failed", err);
+      alert("Erro ao copiar para área de transferência.");
+    }
+    
+    // Clear selection and close selection mode
+    setSelectedVerses({});
+    setIsSelectionMode(false);
+  };
+
   // --- Actions ---
   const cycleFontSize = () => {
     setFontSize(prev => {
@@ -856,9 +876,7 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
 
       if (visible.length > 0) {
         const target = visible[0].target as HTMLElement;
-        const book = target.getAttribute('data-book');
-        const chapter = target.getAttribute('data-chapter');
-        //const verse = target.getAttribute('data-verse');
+        const verse = target.getAttribute('data-verse');
 
         // Identify which chapter we are in
         const chapterKey = target.closest('section')?.getAttribute('data-key');
@@ -868,8 +886,11 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
 
           const c = renderedChapters.find(ch => ch.key === chapterKey);
           if (c) {
-            // For now showing Chapter only in title to keep it clean, or could add verse if really needed
-            setCurrentTitle(`${c.bookName} ${c.chapterIndex + 1}`);
+            if (verse) {
+              setCurrentTitle(`${c.bookName} ${c.chapterIndex + 1}:${verse}`);
+            } else {
+              setCurrentTitle(`${c.bookName} ${c.chapterIndex + 1}`);
+            }
           }
         }
       }
@@ -1151,6 +1172,17 @@ const ReadingView: React.FC<ReadingViewProps> = ({ onModalToggle }) => {
                     {isAllHighlighted ? 'ink_eraser' : 'border_color'}
                   </span>
                   {isAllHighlighted ? 'Apagar' : 'Destacar'}
+                </button>
+
+                <button
+                  onClick={handleCopySelected}
+                  disabled={Object.keys(selectedVerses).length === 0}
+                  className={`flex items-center gap-1 bg-black/5 hover:bg-black/10 text-black px-2.5 py-1.5 rounded-full font-bold text-[10px] sm:text-xs shadow-sm transition-all active:scale-95 shrink-0 ${
+                    Object.keys(selectedVerses).length === 0 ? 'opacity-40 cursor-not-allowed' : ''
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-xs sm:text-sm font-bold">content_copy</span>
+                  Copiar
                 </button>
 
                 <button

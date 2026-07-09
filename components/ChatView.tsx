@@ -2,9 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Message } from '../types';
 import { sendMessageStream, initChatSession } from '../services/geminiService';
 import { GenerateContentResponse } from "@google/genai";
-import { saveChatMessage, getChatHistory } from '../services/api';
+import { saveChatMessage, getChatHistory, saveNote, toggleFavorite } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { supabase } from '../services/supabase';
 
 const ChatView: React.FC = () => {
   const [messages, setMessages] = useState<Message[]>([
@@ -16,24 +17,34 @@ const ChatView: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isHistoryLoaded, setIsHistoryLoaded] = useState(false);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [openSaveMenuId, setOpenSaveMenuId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Initialize chat session and load history
   useEffect(() => {
-    initChatSession();
+    const loadData = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        setUserAvatar(session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null);
+      }
 
-    const loadHistory = async () => {
       const history = await getChatHistory();
       if (history.length > 0) {
         const formattedMessages: Message[] = history.map(msg => ({
-          id: msg.id?.toString() || Date.now().toString(),
+          id: msg.id?.toString() || Date.now().toString() + Math.random(),
           role: msg.role,
           text: msg.text
         }));
         setMessages(formattedMessages);
+        initChatSession(history as any);
+      } else {
+        initChatSession();
       }
+      setIsHistoryLoaded(true);
     };
-    loadHistory();
+    loadData();
   }, []);
 
   // Auto-scroll to bottom
@@ -43,7 +54,7 @@ const ChatView: React.FC = () => {
 
   const handleSend = async (textOverride?: string) => {
     const textToSend = textOverride || input;
-    if (!textToSend.trim() || isLoading) return;
+    if (!textToSend.trim() || isLoading || !isHistoryLoaded) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -105,6 +116,31 @@ const ChatView: React.FC = () => {
     }
   };
 
+  const handleNewConversation = () => {
+    if (window.confirm("Deseja iniciar uma nova conversa? (O histórico continuará salvo na sua conta)")) {
+      setMessages([
+        { id: 'welcome', role: 'model', text: 'Olá! Como posso ajudar você a entender as Escrituras hoje?' }
+      ]);
+      initChatSession([]);
+    }
+  };
+
+  const handleSaveAIResponse = async (text: string, type: 'note' | 'favorite') => {
+    try {
+      if (type === 'note') {
+        await saveNote('Chat', 0, text);
+        alert('Resposta salva como anotação!');
+      } else {
+        await toggleFavorite('Chat AI', text);
+        alert('Resposta salva nos favoritos!');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao salvar resposta.');
+    }
+    setOpenSaveMenuId(null);
+  };
+
   const suggestions = [
     { icon: 'auto_awesome', text: 'Explique João 3:16' },
     { icon: 'light_mode', text: 'Versículos sobre esperança' },
@@ -119,7 +155,9 @@ const ChatView: React.FC = () => {
           <span className="material-symbols-outlined">arrow_back_ios</span>
         </div>
         <h2 className="text-[#1c1a0d] dark:text-white text-lg font-bold leading-tight tracking-[-0.015em] flex-1 text-center">Conversar com a Bíblia</h2>
-        <div className="size-10"></div>
+        <button onClick={handleNewConversation} className="text-primary hover:bg-primary/10 size-10 shrink-0 flex items-center justify-center rounded-full transition-colors" title="Nova Conversa">
+          <span className="material-symbols-outlined">add_comment</span>
+        </button>
       </header>
 
       {/* Chat Area */}
@@ -127,16 +165,40 @@ const ChatView: React.FC = () => {
         {messages.map((msg) => (
           <div key={msg.id} className={`flex items-end gap-3 ${msg.role === 'user' ? 'justify-end' : ''}`}>
             {msg.role === 'model' && (
-              <div
-                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 shrink-0 shadow-sm border border-gray-200 dark:border-gray-700"
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBVo2xwlakoqdG5uBzghznvq7-wkBTEYfhVyFT6fJS9OupTlow-I-yp3KgEiH99gs7mfZN1aXn6HZ3qrstQ-TOdc8dFz23Maf8vT9FGWw92sP6zrLG3EkdKJvPmzXigXOGaluDUf0Lub3NC8j6jAcHM5SY2hAN_rWwvxtA2q7TwHvur82PgbcP4FWACWVSV42xbhEG1GYC5t4_FhcERkhF64NqxfxJPIjcdrRcI7olqL40VfnzsY9m8LUXjAfrfu0Nqa0fkNoyM9g")' }}
-              ></div>
+              <div className="flex flex-col items-center gap-1 self-end mb-2">
+                <div
+                  className="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 shrink-0 shadow-sm border border-gray-200 dark:border-gray-700"
+                  style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuBVo2xwlakoqdG5uBzghznvq7-wkBTEYfhVyFT6fJS9OupTlow-I-yp3KgEiH99gs7mfZN1aXn6HZ3qrstQ-TOdc8dFz23Maf8vT9FGWw92sP6zrLG3EkdKJvPmzXigXOGaluDUf0Lub3NC8j6jAcHM5SY2hAN_rWwvxtA2q7TwHvur82PgbcP4FWACWVSV42xbhEG1GYC5t4_FhcERkhF64NqxfxJPIjcdrRcI7olqL40VfnzsY9m8LUXjAfrfu0Nqa0fkNoyM9g")' }}
+                ></div>
+              </div>
             )}
 
-            <div className={`flex flex-1 flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <p className="text-[#9c9049] text-[12px] font-medium leading-normal mx-1">
-                {msg.role === 'user' ? 'Você' : 'Bíblia AI'}
-              </p>
+            <div className={`flex flex-1 flex-col gap-1 relative ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className="flex items-center gap-2 mx-1">
+                <p className="text-[#9c9049] text-[12px] font-medium leading-normal">
+                  {msg.role === 'user' ? 'Você' : 'Bíblia AI'}
+                </p>
+                {msg.role === 'model' && !msg.isStreaming && msg.id !== 'welcome' && (
+                  <div className="relative">
+                    <button 
+                      onClick={() => setOpenSaveMenuId(openSaveMenuId === msg.id ? null : msg.id)}
+                      className="text-gray-400 hover:text-primary transition-colors flex items-center justify-center"
+                    >
+                      <span className="material-symbols-outlined text-[14px]">more_horiz</span>
+                    </button>
+                    {openSaveMenuId === msg.id && (
+                      <div className="absolute top-full left-0 mt-1 bg-white dark:bg-[#1e1e1e] border border-gray-100 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden z-20 min-w-[150px]">
+                        <button onClick={() => handleSaveAIResponse(msg.text, 'favorite')} className="w-full text-left px-3 py-2 text-xs text-[#1c1a0d] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2 border-b border-gray-100 dark:border-gray-700">
+                          <span className="material-symbols-outlined text-[14px]">favorite</span> Salvar Normal
+                        </button>
+                        <button onClick={() => handleSaveAIResponse(msg.text, 'note')} className="w-full text-left px-3 py-2 text-xs text-[#1c1a0d] dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[14px]">edit_note</span> Salvar como Anotação
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               <div className={`text-base font-normal leading-relaxed max-w-[85%] rounded-2xl px-4 py-3 shadow-sm border
                   ${msg.role === 'user'
@@ -169,10 +231,15 @@ const ChatView: React.FC = () => {
             </div>
 
             {msg.role === 'user' && (
-              <div
-                className="bg-center bg-no-repeat aspect-square bg-cover rounded-full w-8 shrink-0 shadow-sm border border-gray-200 dark:border-gray-700"
-                style={{ backgroundImage: 'url("https://lh3.googleusercontent.com/aida-public/AB6AXuCnIsj8R3TygrfZRd4U563-Zq4RcryXyiowgiz_-p_SO8QfLBrdA0xEkJkzIvYeSzrB2MVNf515nG-hBGdOLfEP_WwpdqjMclldJFmZEUwFMUPFV99G36WDCjVhUWxT6gB00y5g3R5_zH1okY-yD2p65fRVftsTfF-YAA4D_R7ZyRnNWBpUhQR4sh8E4ic5NOTRog-6UbCRDyrkDHqONe5ePj5tZz1mv7y4YiJxN7hlCz1ynxmtcy0FoGIXahDkhb-bHjF1Ww_bJA")' }}
-              ></div>
+              <div className="flex flex-col items-center gap-1 self-end mb-2">
+                {userAvatar ? (
+                  <img src={userAvatar} alt="User" className="aspect-square rounded-full w-8 shrink-0 shadow-sm border border-gray-200 dark:border-gray-700 object-cover" />
+                ) : (
+                  <div className="flex items-center justify-center bg-primary/20 aspect-square rounded-full w-8 shrink-0 shadow-sm border border-primary/30">
+                    <span className="material-symbols-outlined text-primary text-[18px]">person</span>
+                  </div>
+                )}
+              </div>
             )}
           </div>
         ))}
@@ -208,7 +275,7 @@ const ChatView: React.FC = () => {
             />
             <button
               onClick={() => handleSend()}
-              disabled={isLoading || !input.trim()}
+              disabled={isLoading || !input.trim() || !isHistoryLoaded}
               className="absolute right-1 top-1 size-10 flex items-center justify-center bg-primary rounded-full text-white shadow-md active:scale-90 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <span className="material-symbols-outlined">send</span>
